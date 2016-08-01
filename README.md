@@ -1,4 +1,14 @@
 MetadataExplorer
 ================
 
-Explore metadata in .NET assemblies
+This repository contains code that utilizes a .NET API I came across while working on a project along with an example of how to use it. Without going into too much detail about this project, I will tell you it involved creating a Visual Studio plug-in which inspects the code within a Visual Studio solution and looks for classes that have specific properties.
+
+Using Visual Studio’s code model to inspect classes worked well except when it came to referenced assemblies which the code model provided no visibility into. To work around this I tried using the classes found in the System.Reflection namespace but this had a number of drawbacks. In order to use the System.Reflection classes you need to load the assembly into memory using the Common Language Runtime(CLR), and since the CLR expects to execute the code in the assembly at some point, there are a number of requirements that need to be met before it’s loaded. Those requirements made this approach unattractive since my plug-in didn’t need to execute any of the code in the assembly, it just needed to inspect it.
+
+I next explored the idea of parsing the raw bytes of the assembly file in order to get the information my plug-in needed. After a couple days of reading through the Common Language Infrastructure(CLI) Standards document and doing some prototyping which was becoming pretty daunting, I came across the .NET Metadata Unmanaged API Reference. The Microsoft documentation describes this API as follows:
+
+> The metadata API enables a client, such as a compiler, to generate or access a component’s metadata without the types being loaded by the common language runtime (CLR).
+
+Perfect, this was exactly the API to use for my plug-in. Well, not exactly perfect. The MetaData API is written in unmanaged code and has a C style interface. Seeing as I’m used to all the niceties I get using a managed programming language like C# .NET I needed to create a wrapper that insulates the rest of my plug-in code from the C style API calls. To accomplish this I wrote a number of PInvoke classes that allowed me to call into the MetaData API from .NET and then hid them all behind a single class called AssemblyExplorer which only implemented the functionality I needed for my plug-in. You can download the source code for these classes including the AssemblyExplorer class which gives an example of how to use the MetaData API from this repository.
+
+If you are planning to use the MetaData API you will need to have some familiarity with the CLI since the interface is quite different from the System.Reflection namespace and is not as far removed from the raw bytes that make up the assembly(but it sure beats parsing the assembly bytes yourself). I recommend reading through the CLI specifications to get a better understanding of the interface if you plan on using it in your projects.
